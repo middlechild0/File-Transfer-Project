@@ -1,16 +1,25 @@
-package server;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.*;
 import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.concurrent.locks.StampedLock;
 
 public class server {
-	
+
     static ArrayList<my_files> myFiles = new ArrayList<>();
+
+    private static String getFileExtension(String filename) {
+        my_files dummyFile = new my_files(0, filename, null, null);
+        return dummyFile.getFileExtension();
+    }
 
     public static void main(String[] args) {
         JFrame jFrame = new JFrame("Group 4 server");
@@ -43,6 +52,8 @@ public class server {
         }
     }
 
+    private static int fileId = 0; // Add a global variable to keep track of fileId
+
     private static void handleClient(Socket socket, JPanel jPanel) {
         try (DataInputStream dataInputStream = new DataInputStream(socket.getInputStream())) {
             int fileNameLength = dataInputStream.readInt();
@@ -64,26 +75,125 @@ public class server {
                     JLabel jlFileName = new JLabel(fileName);
                     jlFileName.setFont(new Font("Arial", Font.BOLD, 20));
                     jlFileName.setBorder(new EmptyBorder(10, 0, 0, 0));
-                    jpFileRow.add(jlFileName);
 
-                    // Add further components or processing for the file row panel
+                    if (getFileExtension(fileName).equalsIgnoreCase("txt")) {
+                        jpFileRow.setName(String.valueOf(fileId));
+                        jpFileRow.addMouseListener(getMyMouseListener());
 
-                    jPanel.add(jpFileRow);
-                    jPanel.revalidate(); // Refresh the panel to reflect changes
+                        jpFileRow.add(jlFileName);
+                        jPanel.add(jpFileRow);
+                        jPanel.validate();
+                    } else {
+                        // Increment fileId for non-txt files
+                        jpFileRow.setName(String.valueOf(fileId));
+                        jpFileRow.addMouseListener(getMyMouseListener());
+
+                        jpFileRow.add(jlFileName);
+                        jPanel.add(jpFileRow);
+                        jPanel.validate();
+                    }
+
+                    myFiles.add(new my_files(fileId, fileName, fileContentBytes, getFileExtension(fileName)));
+                    fileId++;
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (IOException error) {
+            error.printStackTrace();
         }
     }
 
-    public static String getFileExtension(String filename) {
-        int lastDotIndex = filename.lastIndexOf(".");
 
-        if (lastDotIndex >= 0 && lastDotIndex < filename.length() - 1) {
-            return filename.substring(lastDotIndex + 1);
+    public static MouseListener getMyMouseListener() {
+        return new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                JPanel jPanel = (JPanel) e.getSource();
+
+                int fileId = Integer.parseInt(jPanel.getName());
+
+                for (my_files myFile : myFiles) {
+                    if (myFile.getId() == fileId) {
+                        JFrame jfPreview = createFrame(myFile.getName(), myFile.getData(), myFile.getFileExtension());
+                        jfPreview.setVisible(true);
+                    }
+                }
+            }
+        };
+    }
+
+
+    public static JFrame createFrame(String fileName, byte[] fileData, String fileExtension) {
+        JFrame jFrame = new JFrame("Group 4 File Downloader");
+        JFrame jFrame1 = jFrame;
+        jFrame1.setSize(400, 400);
+
+        JPanel jPanel = new JPanel();
+        jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.Y_AXIS));
+
+        JLabel jTitle = new JLabel("Group 4 File Downloader");
+        jTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        jTitle.setFont(new Font("Arial", Font.BOLD, 25));
+        jTitle.setBorder(new EmptyBorder(20, 0, 10, 0));
+
+        JLabel jlPrompt = new JLabel("Are you sure you want to download " + fileName);
+        jlPrompt.setFont(new Font("Arial", Font.BOLD, 20));
+        jlPrompt.setBorder(new EmptyBorder(20, 0, 10, 0));
+        jlPrompt.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JButton jbYes = new JButton("Yes");
+        jbYes.setPreferredSize(new Dimension(150, 75));
+        jbYes.setFont(new Font("Arial", Font.BOLD, 20));
+
+        JButton jbNo = new JButton("No");
+        jbNo.setPreferredSize(new Dimension(150, 75));
+        jbNo.setFont(new Font("Arial", Font.BOLD, 20));
+
+        JLabel jlFileContent = new JLabel();
+        jlFileContent.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        JPanel jpButtons = new JPanel();
+        jpButtons.setBorder(new EmptyBorder(20, 0, 10, 0));
+        jpButtons.add(jbYes);
+        jpButtons.add(jbNo);
+
+        if (fileExtension.equalsIgnoreCase("txt")) {
+            jlFileContent.setText("<html>" + new String(fileData) + "</html>");
         } else {
-            return "No extension found";
+            jlFileContent.setIcon(new ImageIcon(fileData));
         }
+
+        jbYes.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                File fileDownload = new File(fileName);
+
+                try {
+                    FileOutputStream fileOutputStream = new FileOutputStream(fileDownload);
+
+                    fileOutputStream.write(fileData);
+                    fileOutputStream.close();
+
+                    jFrame1.dispose();
+                } catch (IOException error) {
+                    error.printStackTrace();
+                }
+            }
+        });
+
+        jbNo.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                jFrame1.dispose();
+            }
+        });
+
+        jPanel.add(jTitle);
+        jPanel.add(jlPrompt);
+        jPanel.add(jlFileContent);
+        jPanel.add(jpButtons);
+
+        jFrame1.add(jPanel);
+
+        return jFrame1;
     }
 }
