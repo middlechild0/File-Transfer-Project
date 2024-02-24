@@ -1,89 +1,45 @@
-package server;
+public class my_files {
+    private int id;
+    private String name;
+    private byte[] data;
+    private String fileExtension;
 
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.io.DataInputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.ArrayList;
-
-public class server {
-	
-    static ArrayList<my_files> myFiles = new ArrayList<>();
-
-    public static void main(String[] args) {
-        JFrame jFrame = new JFrame("Group 4 server");
-        jFrame.setSize(400, 400);
-        jFrame.setLayout(new BoxLayout(jFrame.getContentPane(), BoxLayout.Y_AXIS));
-        jFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-
-        JPanel jPanel = new JPanel();
-        jPanel.setLayout(new BoxLayout(jPanel, BoxLayout.Y_AXIS));
-
-        JScrollPane jScrollPane = new JScrollPane(jPanel);
-        jScrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
-
-        JLabel jlTitle = new JLabel("Group 4 File Receiver");
-        jlTitle.setFont(new Font("Arial", Font.BOLD, 25));
-        jlTitle.setBorder(new EmptyBorder(20, 0, 10, 0));
-        jlTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
-
-        jFrame.add(jlTitle);
-        jFrame.add(jScrollPane);
-        jFrame.setVisible(true);
-
-        try (ServerSocket serverSocket = new ServerSocket(1234)) {
-            while (true) {
-                Socket socket = serverSocket.accept();
-                handleClient(socket, jPanel);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public my_files(int id, String name, byte[] data, String fileExtension) {
+        this.id = id;
+        this.name = name;
+        this.data = data;
+        this.fileExtension = fileExtension;
     }
 
-    private static void handleClient(Socket socket, JPanel jPanel) {
-        try (DataInputStream dataInputStream = new DataInputStream(socket.getInputStream())) {
-            int fileNameLength = dataInputStream.readInt();
-
-            if (fileNameLength > 0) {
-                byte[] fileNameBytes = new byte[fileNameLength];
-                dataInputStream.readFully(fileNameBytes, 0, fileNameBytes.length);
-                String fileName = new String(fileNameBytes);
-
-                int fileContentLength = dataInputStream.readInt();
-
-                if (fileContentLength > 0) {
-                    byte[] fileContentBytes = new byte[fileContentLength];
-                    dataInputStream.readFully(fileContentBytes, 0, fileContentLength);
-
-                    JPanel jpFileRow = new JPanel();
-                    jpFileRow.setLayout(new BoxLayout(jpFileRow, BoxLayout.Y_AXIS));
-
-                    JLabel jlFileName = new JLabel(fileName);
-                    jlFileName.setFont(new Font("Arial", Font.BOLD, 20));
-                    jlFileName.setBorder(new EmptyBorder(10, 0, 0, 0));
-                    jpFileRow.add(jlFileName);
-
-                    // Add further components or processing for the file row panel
-
-                    jPanel.add(jpFileRow);
-                    jPanel.revalidate(); // Refresh the panel to reflect changes
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public void setId(int id) {
+        this.id = id;
     }
 
-    public static String getFileExtension(String filename) {
-        int lastDotIndex = filename.lastIndexOf(".");
+    public void setName(String name) {
+        this.name = name;
+    }
 
-        if (lastDotIndex >= 0 && lastDotIndex < filename.length() - 1) {
-            return filename.substring(lastDotIndex + 1);
-        } else {
-            return "No extension found";
-        }
+    public void setData(byte[] data) {
+        this.data = data;
+    }
+
+    public void setFileExtension(String fileExtension) {
+        this.fileExtension = fileExtension;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public byte[] getData() {
+        return data;
+    }
+
+    public String getFileExtension() {
+        return fileExtension;
     }
 }
